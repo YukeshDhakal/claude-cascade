@@ -1,0 +1,4 @@
+node_modules/
+.claude/cascade/usage-log.csv
+.claude/cascade/verify.config.json
+*.local.json

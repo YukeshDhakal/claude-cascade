@@ -1,0 +1,10 @@
+<!-- Paste this section into your project's own CLAUDE.md after installing claude-cascade. -->
+
+## Token & routing rules (claude-cascade)
+
+- Prefer `Grep`/targeted `Read` (with offset/limit) over reading whole files or scanning the whole repo. Every extra token you pull in stays in context for the rest of the session.
+- For open-ended "where is X" / "how does Y work" questions, delegate to the `explore` subagent instead of searching broadly in the main thread — its findings come back as a short report; its search noise doesn't.
+- Default (no delegation needed) for ordinary feature work and single-domain bug fixes.
+- Delegate to the `architect` subagent for: architecture changes, cross-cutting refactors, anything touching auth/payments/secrets/infra, or any task that has already failed verification twice.
+- A Stop hook (`.claude/hooks/verify.js`) runs this project's real test/lint/build command automatically after you finish a turn. If it fails, that's ground truth — fix it and let it re-run once. If it fails again on the same task, hand off to `architect` rather than guessing a third time.
+- Use `/compact` in long sessions instead of letting conversation history grow unbounded — don't wait until you're near the context limit to do it.
