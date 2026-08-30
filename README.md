@@ -79,7 +79,7 @@ This repo implements the recommendation from a two-pass research project on toke
 ## Roadmap
 
 - **Phase 1 (this repo, done):** CLAUDE.md rules, subagent tiering, deterministic evaluator, usage logging.
-- **Phase 2:** a LiteLLM gateway in front of this, but only once usage-log data shows real volume of mechanical/cheap-tier tasks worth off-loading to a free local model.
+- **Phase 2:** a multi-provider gateway in front of this, but only once usage-log data shows real volume of mechanical/cheap-tier tasks worth off-loading. Evaluate [OmniRoute](https://github.com/diegosouzapw/OmniRoute) first if you already have it — it's purpose-built for exactly this (Claude Code/Codex/Cursor integration, 340 providers, a compression layer), though its own efficiency numbers are self-reported and worth checking against this repo's own usage-log data rather than taken at face value. Fall back to [LiteLLM](https://docs.litellm.ai/docs/routing) if it doesn't fit — narrower in scope (proxy + load-balancing only), but its routing strategies are plainly documented rather than a marketing claim.
 - **Phase 3:** once `verify.js` pass/fail outcomes accumulate, mine that data for a real complexity signal set — replacing the guessed keyword rules in `docs/routing-rules.md` with observed ones, and only then consider a trained classifier on your *own* task distribution (the RouteLLM caveat, applied).
 - **Phase 4:** experiment with GEPA to evolve `CLAUDE.md`/agent instructions against a real eval suite of past tasks — speculative, no confirmed coding-agent integration exists yet.
 
