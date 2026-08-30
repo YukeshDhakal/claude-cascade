@@ -3,10 +3,20 @@
  * claude-cascade — usage logger (Stop hook)
  *
  * Reads the session transcript Claude Code already writes and appends a
- * row of token usage to .claude/cascade/usage-log.csv. This is the
- * measurement half of the plan: tokens-per-successful-task, not
- * tokens-per-request, tracked from real API usage numbers instead of
- * guesswork.
+ * row of token usage to a CSV log. This is the measurement half of the
+ * plan: tokens-per-successful-task, not tokens-per-request, tracked from
+ * real API usage numbers instead of guesswork.
+ *
+ * Log location:
+ *   - a directory passed as argv[2], or the CASCADE_LOG_DIR env var if
+ *     set (used for a global/all-projects install, so the log lands in
+ *     one place instead of dropping an untracked file into every repo
+ *     you touch) — logs to <dir>/usage-log.csv with a `project` column.
+ *     The CLI-argument form is preferred in settings.json hook commands
+ *     since it works identically across cmd/PowerShell/sh, unlike
+ *     inline env-var assignment syntax.
+ *   - otherwise <project>/.claude/cascade/usage-log.csv (per-project
+ *     install, the default for a repo that vendors this tool directly).
  *
  * Designed to never break a session: every risky step is wrapped and any
  * failure just means a skipped log row, never a blocked Stop.
@@ -58,11 +68,15 @@ function sumUsage(transcriptPath) {
   return totals;
 }
 
-function appendRow(logPath, row) {
-  const header = "timestamp,session_id,turns,input_tokens,output_tokens,cache_read_tokens,cache_creation_tokens,total_tokens\n";
+function csvField(value) {
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function appendRow(logPath, header, row) {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   if (!fs.existsSync(logPath)) {
-    fs.writeFileSync(logPath, header, "utf8");
+    fs.writeFileSync(logPath, header + "\n", "utf8");
   }
   fs.appendFileSync(logPath, row + "\n", "utf8");
 }
@@ -79,7 +93,8 @@ function main() {
       process.exit(0);
     }
 
-    const row = [
+    const globalLogDir = process.argv[2] || process.env.CASCADE_LOG_DIR;
+    const fields = [
       new Date().toISOString(),
       input.session_id || "unknown",
       totals.turns,
@@ -88,9 +103,18 @@ function main() {
       totals.cache_read_input_tokens,
       totals.cache_creation_input_tokens,
       total,
-    ].join(",");
+    ];
 
-    appendRow(path.join(projectDir, ".claude", "cascade", "usage-log.csv"), row);
+    if (globalLogDir) {
+      // Global install: one shared log across every project, tagged by project name.
+      const header = "timestamp,project,session_id,turns,input_tokens,output_tokens,cache_read_tokens,cache_creation_tokens,total_tokens";
+      const row = [fields[0], csvField(path.basename(projectDir)), ...fields.slice(1)].join(",");
+      appendRow(path.join(globalLogDir, "usage-log.csv"), header, row);
+    } else {
+      // Per-project install: log stays inside the project it measured.
+      const header = "timestamp,session_id,turns,input_tokens,output_tokens,cache_read_tokens,cache_creation_tokens,total_tokens";
+      appendRow(path.join(projectDir, ".claude", "cascade", "usage-log.csv"), header, fields.join(","));
+    }
   } catch {
     // Logging must never break the session.
   }

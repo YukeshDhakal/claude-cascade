@@ -31,6 +31,28 @@ Requires [Node.js](https://nodejs.org) on `PATH` (the hooks are zero-dependency 
    ```
    from your project root to see total and average tokens per session.
 
+### Global install (all projects, one machine)
+
+Instead of vendoring this into every repo, install once into `~/.claude/`:
+
+1. Copy `.claude/agents/*.md` → `~/.claude/agents/`, and `.claude/hooks/*.js` → `~/.claude/hooks/`.
+2. Merge into `~/.claude/settings.json` (add the `hooks` key — don't overwrite the rest of the file):
+   ```json
+   {
+     "hooks": {
+       "Stop": [
+         { "hooks": [
+           { "type": "command", "command": "node \"~/.claude/hooks/verify.js\"" },
+           { "type": "command", "command": "node \"~/.claude/hooks/usage-log.js\" \"~/.claude/cascade\"" }
+         ] }
+       ]
+     }
+   }
+   ```
+   The second argument to `usage-log.js` is the key difference from a per-project install: it points the log at one shared location instead of dropping `.claude/cascade/usage-log.csv` into every repo you touch. Rows are tagged with a `project` column so `scripts/report.js` still tells them apart.
+3. Copy `docs/CLAUDE.md.example` into `~/.claude/rules/` (or your global instructions file) instead of a per-project `CLAUDE.md`.
+4. `verify.js` is a no-op outside a recognizable project (no package.json/pyproject.toml/Cargo.toml/go.mod found), so it's safe to run on every `Stop` event globally, including non-code sessions.
+
 ## What's in here
 
 ```
